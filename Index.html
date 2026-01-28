@@ -1,145 +1,103 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <title>Messaggi Anonimi</title>
-  <style>
-    body { font-family: Arial, sans-serif; background:#f4f4f4; padding:20px; }
-    h1, h2 { color:#333; }
-    .box { background:#fff; padding:15px; margin-bottom:20px; border-radius:8px; }
-    input, textarea, button { width:100%; padding:8px; margin-top:8px; }
-    ul { list-style:none; padding:0; }
-    li { padding:6px; background:#eee; margin-top:5px; cursor:pointer; border-radius:4px; }
-    li:hover { background:#ddd; }
-  </style>
+<meta charset="UTF-8">
+<title>Messaggi Anonimi</title>
+<style>
+body { font-family: Arial, sans-serif; background:#f4f4f4; padding:20px; }
+h1, h2 { color:#333; }
+.box { background:#fff; padding:15px; margin-bottom:20px; border-radius:8px; }
+input, textarea, button { width:100%; padding:8px; margin-top:8px; }
+ul { list-style:none; padding:0; }
+li { padding:6px; background:#eee; margin-top:5px; cursor:pointer; border-radius:4px; }
+li:hover { background:#ddd; }
+</style>
 
-  <!-- Firebase compat SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <h1>📩 Messaggi Anonimi</h1>
 
-<div class="box">
-  <h2>Registrazione</h2>
-  <input id="nome" placeholder="Nome" />
-  <input id="cognome" placeholder="Cognome" />
-  <button onclick="registra()">Registrati</button>
-</div>
 
 <div class="box">
-  <h2>Persone registrate</h2>
-  <ul id="lista"></ul>
+<h2>Registrazione</h2>
+<input id="nome" placeholder="Nome" />
+<input id="cognome" placeholder="Cognome" />
+<button onclick="registra()">Registrati</button>
 </div>
+
+
+<div class="box">
+<h2>Persone registrate</h2>
+<ul id="lista"></ul>
+</div>
+
 
 <div class="box" id="messaggiBox" style="display:none;">
-  <h2 id="destinatario"></h2>
-  <textarea id="messaggio" placeholder="Scrivi un messaggio anonimo..."></textarea>
-  <button onclick="inviaMessaggio()">Invia messaggio</button>
+<h2 id="destinatario"></h2>
+<textarea id="messaggio" placeholder="Scrivi un messaggio anonimo..."></textarea>
+<button onclick="inviaMessaggio()">Invia messaggio</button>
 </div>
+
 
 <div class="box" id="leggiBox" style="display:none;">
-  <h2>Messaggi ricevuti</h2>
-  <ul id="messaggiRicevuti"></ul>
+<h2>Messaggi ricevuti</h2>
+<ul id="messaggiRicevuti"></ul>
 </div>
+
 
 <div class="box">
-  <button onclick="leggiMessaggi()">Vedi i miei messaggi</button>
+<button onclick="leggiMessaggi()">Vedi i miei messaggi</button>
 </div>
 
+
 <script>
-  // Configurazione Firebase
-  const firebaseConfig = {
-    apiKey: "AIzaSyDCguHTXRwtx0mdDRLC_kZeKElEJeErxV8",
-    authDomain: "archivalentino-2de41.firebaseapp.com",
-    projectId: "archivalentino-2de41",
-    storageBucket: "archivalentino-2de41.appspot.com",
-    messagingSenderId: "641724408583",
-    appId: "1:641724408583:web:cdfaff6456628862a65ba2",
-    measurementId: "G-8FNZX5ZM73"
-  };
+const firebaseConfig = {
+apiKey: "AIzaSyDCguHTXRwtx0mdDRLC_kZeKElEJeErxV8",
+authDomain: "archivalentino-2de41.firebaseapp.com",
+projectId: "archivalentino-2de41",
+storageBucket: "archivalentino-2de41.appspot.com",
+messagingSenderId: "641724408583",
+appId: "1:641724408583:web:cdfaff6456628862a65ba2",
+measurementId: "G-8FNZX5ZM73"
+};
 
-  // Inizializza Firebase compat
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
 
-  let selezionato = null;
-  let userId = localStorage.getItem('userId') || null;
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  function registra() {
-    const nome = document.getElementById('nome').value.trim();
-    const cognome = document.getElementById('cognome').value.trim();
-    if (!nome || !cognome) return alert('Inserisci nome e cognome');
 
-    db.collection('utenti').add({
-      nome,
-      cognome,
-      created: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(docRef => {
-      alert('Registrazione completata ✅');
-      userId = docRef.id;
-      localStorage.setItem('userId', userId); // salva l'utente nel browser
-      caricaUtenti();
-      document.getElementById('nome').value='';
-      document.getElementById('cognome').value='';
-      leggiMessaggi(); // carica i messaggi appena registrato
-    }).catch(err => console.error(err));
-  }
+let selezionato = null;
+let userId = localStorage.getItem('userId') || null;
 
-  function caricaUtenti() {
-    db.collection('utenti').orderBy('created').get().then(snapshot => {
-      const ul = document.getElementById('lista');
-      ul.innerHTML = '';
-      snapshot.forEach(doc => {
-        const u = doc.data();
-        const li = document.createElement('li');
-        li.textContent = u.nome + ' ' + u.cognome;
-        li.onclick = () => selezionaUtente(doc.id, u.nome);
-        ul.appendChild(li);
-      });
-    }).catch(err => console.error(err));
-  }
 
-  function selezionaUtente(id, nome) {
-    selezionato = id;
-    document.getElementById('messaggiBox').style.display='block';
-    document.getElementById('destinatario').textContent='Messaggio per '+nome;
-  }
+function registra() {
+const nome = document.getElementById('nome').value.trim();
+const cognome = document.getElementById('cognome').value.trim();
+if (!nome || !cognome) return alert('Inserisci nome e cognome');
 
-  function inviaMessaggio() {
-    const testo = document.getElementById('messaggio').value.trim();
-    if (!testo) return alert('Scrivi un messaggio');
-    db.collection('utenti').doc(selezionato).collection('messaggi').add({
-      testo,
-      created: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-      alert('Messaggio inviato anonimamente ✅');
-      document.getElementById('messaggio').value='';
-    }).catch(err => console.error(err));
-  }
 
-  function leggiMessaggi() {
-    if (!userId) return alert('Devi prima registrarti!');
-    db.collection('utenti').doc(userId).collection('messaggi')
-      .orderBy('created').get().then(snapshot => {
-        const ul = document.getElementById('messaggiRicevuti');
-        ul.innerHTML='';
-        snapshot.forEach(doc => {
-          const m = doc.data();
-          const li = document.createElement('li');
-          li.textContent = m.testo;
-          ul.appendChild(li);
-        });
-        document.getElementById('leggiBox').style.display='block';
-      }).catch(err => console.error(err));
-  }
+db.collection('utenti').add({
+nome,
+cognome,
+created: firebase.firestore.FieldValue.serverTimestamp()
+}).then(docRef => {
+alert('Registrazione completata ✅');
+userId = docRef.id;
+localStorage.setItem('userId', userId);
+caricaUtenti();
+document.getElementById('nome').value='';
+document.getElementById('cognome').value='';
+leggiMessaggi();
+}).catch(err => console.error(err));
+}
 
-  // Se l'utente è già registrato nel browser, carica subito i messaggi
-  if(userId) {
-    leggiMessaggi();
-  }
 
-  caricaUtenti();
-</script>
-</body>
+function caricaUtenti() {
+db.collection('utenti').orderBy('created').get().then(snapshot => {
+const ul = document.getElementById('lista');
 </html>
+
